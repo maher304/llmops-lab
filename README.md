@@ -89,3 +89,4 @@ pytest tests/
 - MLflow optional - gracefully degrades
 - Costs only computed if pricing configured
 - Results labeled as simulated/deterministic
+# Updated
