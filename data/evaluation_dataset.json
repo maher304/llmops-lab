@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "question": "What is machine learning?",
+    "expected_answer": "Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.",
+    "reference_context": "Machine learning algorithms build models based on sample data to make predictions or decisions."
+  },
+  {
+    "id": 2,
+    "question": "What is RAG?",
+    "expected_answer": "Retrieval-Augmented Generation (RAG) is a technique that combines information retrieval with text generation to provide more accurate and grounded responses.",
+    "reference_context": "RAG retrieves relevant documents from a knowledge base and uses them as context for generating answers."
+  },
+  {
+    "id": 3,
+    "question": "What is an AI agent?",
+    "expected_answer": "An AI agent is an autonomous system that can perceive its environment, make decisions, and take actions to achieve specific goals.",
+    "reference_context": "AI agents use planning, reasoning, and tools to accomplish tasks with minimal human intervention."
+  }
+]
