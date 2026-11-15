@@ -35,3 +35,19 @@ def test_create_and_get_run():
     assert "run" in data2
     assert "results" in data2
     assert len(data2["results"]) == 3
+
+def test_unknown_dataset_version_is_rejected():
+    response = client.post("/runs", json={
+        "dataset_version": "v2",
+        "configs": [{"name": "baseline", "model_name": "llama2"}]
+    })
+    assert response.status_code == 404
+
+def test_comparison_uses_two_distinct_runs():
+    payload = {"dataset_version": "v1", "configs": [{"name": "baseline", "model_name": "llama2"}]}
+    first = client.post("/runs", json=payload).json()["run_id"]
+    second = client.post("/runs", json=payload).json()["run_id"]
+    response = client.get(f"/runs/{second}/compare", params={"other_run_id": first})
+    assert response.status_code == 200
+    assert response.json()["run1_id"] == second
+    assert response.json()["run2_id"] == first

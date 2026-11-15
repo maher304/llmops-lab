@@ -7,16 +7,16 @@ LLM evaluation and observability platform that compares LLM and RAG configuratio
 - **Versioned Datasets**: Manage evaluation datasets with questions, expected answers, and contexts
 - **Multiple Configurations**: Compare different models/pipelines
 - **Comprehensive Metrics**: Latency, tokens, correctness, context relevance, faithfulness
-- **Persistence**: PostgreSQL storage for runs and results
+- **Persistence**: SQLite storage for runs and results (persistent Docker volume)
 - **Comparison Reports**: Compare runs and configurations
-- **MLflow Integration**: Experiment tracking (when available)
+- **MLflow**: Reported unavailable until experiment tracking is connected
 - **Offline Baseline**: Deterministic evaluation without paid APIs
 - **Transparent Reporting**: Clear labeling of simulated vs real data
 
 ## Evaluation Methodology
 
 - **Correctness**: Keyword overlap based scoring (deterministic baseline)
-- **Latency**: Measured execution time
+- **Latency**: Measured local evaluation time with a clearly simulated 50 ms baseline offset
 - **Tokens**: Estimated when not available from API
 - **RAG Metrics**: Context relevance and faithfulness when RAG enabled
 - **Limitations**: LLM-as-a-judge has biases - documented clearly
@@ -69,8 +69,7 @@ graph TD
     A[FastAPI] --> B[Dataset Manager]
     A --> C[Evaluation Engine]
     C --> D[Baseline Evaluator]
-    C --> E[MLflow Tracker]
-    A --> F[PostgreSQL]
+    A --> F[SQLite]
     C --> G[Metrics Calculator]
     A --> H[Comparison Service]
 ```
@@ -89,4 +88,5 @@ pytest tests/
 - MLflow optional - gracefully degrades
 - Costs only computed if pricing configured
 - Results labeled as simulated/deterministic
+- Only dataset version `v1` is included; comparisons require two existing run IDs, for example `/runs/2/compare?other_run_id=1`
 # Updated

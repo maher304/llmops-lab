@@ -1,14 +1,23 @@
 import sqlite3
 import json
 from datetime import datetime
+from pathlib import Path
+from app.core.config import settings
 
 class Database:
-    def __init__(self, db_path: str = "llmops.db"):
+    def __init__(self, db_path: str = settings.database_path):
         self.db_path = db_path
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.init_db()
+
+    def _connect(self):
+        connection = sqlite3.connect(self.db_path, timeout=10)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys = ON")
+        return connection
     
     def init_db(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cur = conn.cursor()
         
         cur.execute('''CREATE TABLE IF NOT EXISTS runs (
@@ -39,7 +48,7 @@ class Database:
         conn.close()
     
     def create_run(self, dataset_version: str, config_snapshot: dict):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cur = conn.cursor()
         cur.execute("INSERT INTO runs (dataset_version, config_snapshot) VALUES (?, ?)",
                     (dataset_version, json.dumps(config_snapshot)))
@@ -49,7 +58,7 @@ class Database:
         return run_id
     
     def add_result(self, run_id: int, result: dict):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._connect()
         cur = conn.cursor()
         cur.execute('''INSERT INTO results 
             (run_id, question_id, question, answer, expected_answer, latency_ms, 
@@ -63,8 +72,7 @@ class Database:
         conn.close()
     
     def get_run(self, run_id: int):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect()
         cur = conn.cursor()
         cur.execute("SELECT * FROM runs WHERE id = ?", (run_id,))
         row = cur.fetchone()
@@ -76,8 +84,7 @@ class Database:
         return None
     
     def get_run_results(self, run_id: int):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect()
         cur = conn.cursor()
         cur.execute("SELECT * FROM results WHERE run_id = ?", (run_id,))
         rows = cur.fetchall()
@@ -85,8 +92,7 @@ class Database:
         return [dict(row) for row in rows]
     
     def list_runs(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._connect()
         cur = conn.cursor()
         cur.execute("SELECT * FROM runs ORDER BY created_at DESC")
         rows = cur.fetchall()

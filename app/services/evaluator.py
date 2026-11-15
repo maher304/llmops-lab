@@ -1,5 +1,6 @@
 import json
 import time
+import re
 from typing import Dict, Any, List
 from app.core.config import settings
 
@@ -25,16 +26,16 @@ class BaselineEvaluator:
             latency_ms = (time.time() - start) * 1000 + 50  # Add small simulated latency
             
             # Simple correctness score based on keyword overlap
-            expected_words = set(expected_answer.lower().split())
-            answer_words = set(answer.lower().split())
+            expected_words = set(re.findall(r"\w+", expected_answer.lower()))
+            answer_words = set(re.findall(r"\w+", answer.lower()))
             overlap = len(expected_words.intersection(answer_words))
             correctness = min(1.0, overlap / max(len(expected_words), 1))
             
             return {
                 "answer": answer,
                 "latency_ms": round(latency_ms, 2),
-                "tokens_prompt": len(question.split()) * 1.3,
-                "tokens_completion": len(answer.split()) * 1.3,
+                "tokens_prompt": round(len(question.split()) * 1.3),
+                "tokens_completion": round(len(answer.split()) * 1.3),
                 "correctness": round(correctness, 3),
                 "context_relevance": 0.75 if config.get('use_rag') else None,
                 "faithfulness": 0.80 if config.get('use_rag') else None,

@@ -3,6 +3,10 @@ from app.models.schemas import EvalRunCreate
 from app.services.evaluator import evaluator
 from app.core.database import db
 import json
+from pathlib import Path
+from fastapi import Query
+
+DATASET_PATH = Path(__file__).resolve().parents[2] / "data" / "evaluation_dataset.json"
 
 app = FastAPI(
     title="LLMOps Lab",
@@ -12,19 +16,23 @@ app = FastAPI(
 
 @app.post("/runs")
 def create_run(run_request: EvalRunCreate):
+    if run_request.dataset_version != "v1":
+        raise HTTPException(status_code=404, detail=f"Dataset version not found: {run_request.dataset_version}")
     # Load dataset
     try:
-        with open('data/evaluation_dataset.json', 'r') as f:
+        with DATASET_PATH.open(encoding="utf-8") as f:
             dataset = json.load(f)
-    except:
-        raise HTTPException(status_code=500, detail="Dataset not found")
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=500, detail="Evaluation dataset could not be loaded") from exc
+    if not isinstance(dataset, list) or not dataset:
+        raise HTTPException(status_code=500, detail="Evaluation dataset is empty or invalid")
     
-    config_snapshot = {"configs": [c.dict() for c in run_request.configs], "dataset_version": run_request.dataset_version}
+    config_snapshot = {"configs": [c.model_dump() for c in run_request.configs], "dataset_version": run_request.dataset_version}
     run_id = db.create_run(run_request.dataset_version, config_snapshot)
     
     results_all = []
     for config in run_request.configs:
-        config_dict = config.dict()
+        config_dict = config.model_dump()
         for item in dataset:
             eval_result = evaluator.evaluate(item['question'], item['expected_answer'], config_dict)
             result_record = {
@@ -59,10 +67,11 @@ def get_run(run_id: int):
     return {"run": run, "results": results}
 
 @app.get("/runs/{run_id}/compare")
-def compare_runs(run_id: int):
-    results = db.get_run_results(run_id)
-    # For demo, compare with aggregated metrics
-    comparison = evaluator.compare_runs(results, results)
+def compare_runs(run_id: int, other_run_id: int = Query(..., gt=0)):
+    if not db.get_run(run_id) or not db.get_run(other_run_id):
+        raise HTTPException(status_code=404, detail="Run not found")
+    comparison = evaluator.compare_runs(db.get_run_results(run_id), db.get_run_results(other_run_id))
+    comparison.update({"run1_id": run_id, "run2_id": other_run_id})
     return comparison
 
 @app.get("/dashboard")
@@ -78,4 +87,4 @@ def dashboard():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "deterministic_mode": True, "mlflow_available": True}
+    return {"status": "healthy", "deterministic_mode": True, "mlflow_available": False}
